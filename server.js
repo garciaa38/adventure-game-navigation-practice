@@ -48,40 +48,66 @@ const server = http.createServer((req, res) => {
       const {name, roomId} = req.body;
       const startingRoom = world.rooms[roomId];
       player = new Player(name, startingRoom);
+      console.log(world.rooms)
+      console.log(player)
 
       res.statusCode = 302;
-      res.setHeader('Location', `/rooms/${startingRoom}`);
+      res.setHeader('Location', `/rooms/${startingRoom.id}`);
       return res.end();
     }
 
     // Phase 3: GET /rooms/:roomId
     if (req.method === 'GET' && req.url.startsWith('/rooms/')) {
       const urlParts = req.url.split('/');
+      console.log(urlParts);
       if (urlParts.length === 3) {
         const roomId = urlParts[2];
-        const roomTemp = fs.readFileSync('./views/room.html');
+        const roomTemp = fs.readFileSync('./views/room.html', 'utf-8');
         const resBody = roomTemp
           .replace(/#{roomName}/g, player.currentRoom.name)
-          .replace(/#{inventory}/g, req.body.player.items)
-          .replace(/#{roomItems}/g, req.body.room.items)
-          .replace(/#{exits}/g, req.body.room.exits);
+          .replace(/#{inventory}/g, player.items)
+          .replace(/#{roomItems}/g, player.currentRoom.itemsToString())
+          .replace(/#{exits}/g, player.currentRoom.exitsToString());
+          console.log('PLAYER ROOM', player.currentRoom.id);
+          console.log('ROOM ID', roomId);
 
-          if (req.body.player.currentRoom !== roomId) {
+          if (player.currentRoom.id !== Number(roomId)) {
             res.statusCode = 302;
-            res.setHeader('Location', `/rooms/${req.body.player.currentRoom}`, "UTF-8");
+            res.setHeader('Location', `/rooms/${player.currentRoom.id}`);
             return res.end();
           }
 
           res.statusCode = 200;
           res.setHeader('Content-Type', 'text/html');
-          res.end(resBody);
+          return res.end(resBody);
 
       }
     }
 
     // Phase 4: GET /rooms/:roomId/:direction
+    if (req.method === 'GET' && req.url.startsWith('/rooms/')) {
+      const urlParts = req.url.split('/');
+      if (urlParts.length === 4) {
+        const roomId = urlParts[2];
+        const direction = urlParts[3];
+        const newRoom = player.move(direction[0]);
+
+        if (player.currentRoom.id !== Number(roomId)) {
+          res.statusCode = 302;
+          res.setHeader('Location', `/rooms/${player.currentRoom.id}`);
+          return res.end();
+        }
+
+        res.statusCode = 302;
+        res.setHeader('Location', `/rooms/${newRoom.id}`)
+        return res.end();
+
+      }
+    }
 
     // Phase 5: POST /items/:itemId/:action
+    
+
 
     // Phase 6: Redirect if no matching route handlers
   })
